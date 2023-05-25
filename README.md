@@ -57,6 +57,7 @@ Room for improvement:
 - This project was inspired by Jimeno
 - Many thanks to Tabata & Katy
 - People who post questions in stack overflow
+- [HHest](https://github.com/HHest) for solving a question like ours.
 
 
 ## Contact
