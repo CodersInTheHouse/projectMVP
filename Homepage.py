@@ -9,35 +9,12 @@ import spotipy.util as util
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-scope = "user-read-recently-played"
+
 clientID= st.secrets['clientID']
 clientSe = st.secrets['clientSe']
-redirect='http://localhost:7777/callback'
+redirect='http://localhost:7777/callback'    
 
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=clientID,client_secret=clientSe,redirect_uri=redirect,scope=scope))
-
-results = sp.current_user_recently_played(limit=10)
-print(type(results))
-for idx, item in enumerate(results['items']):
-    track = item['track']
-    print(idx, track['artists'][0]['name'], " – ", track['name'])
-
-scope = "user-top-read"
-
-
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=clientID,client_secret=clientSe,redirect_uri=redirect,scope=scope))
-
-results = sp.current_user_top_artists(limit=10)
-for idx, artist in enumerate(results['items']):
-    print(idx, artist['name'],artist['popularity'],artist['genres'],artist['images'][0])
-
-results = sp.current_user_top_tracks()
-for idx, item in enumerate(results['items']):
-    artists=[artist['name'] for artist in item['artists']]
-    print(idx, item['name'],artists)
-    
-
-st.set_page_config(page_title= "Covid-19 Data", page_icon=":bar_chart:", layout="wide")
+st.set_page_config(page_title= "Spotipi trends Data", page_icon=":bar_chart:", layout="wide")
 
 
 # Initialize connection.
@@ -76,43 +53,27 @@ st.sidebar.header('Please choose the items below:')
 
 #SELECT COUNTRY
 country = st.sidebar.multiselect(
-    'Select country', ['Argentina','Canada', 'China', 'Colombia','France', 'Germany','Great Britain', 'Italy', 'Mexico', 'United States'], max_selections=4,
+    'Select country', ['Argentina' ,'Australia' ,'Brazil', 'Austria', 'Belgium' ,'Colombia', 'Bolivia',
+ 'Denmark' ,'Bulgaria' ,'Canada' ,'Chile' ,'Costa Rica', 'Czech Republic',
+ 'Finland' ,'Dominican Republic', 'Ecuador' ,'El Salvador' ,'Estonia' ,'France',
+ 'Germany' ,'Global', 'Greece', 'Guatemala', 'Honduras', 'Hong Kong', 'Hungary',
+ 'Iceland', 'Indonesia', 'Ireland', 'Italy', 'Japan', 'Latvia', 'Lithuania',
+ 'Malaysia', 'Luxembourg', 'Mexico', 'Netherlands', 'New Zealand', 'Nicaragua',
+ 'Norway', 'Panama', 'Paraguay', 'Peru' ,'Philippines', 'Poland', 'Portugal',
+ 'Singapore', 'Spain', 'Slovakia', 'Sweden', 'Taiwan', 'Switzerland', 'Turkey',
+ 'United Kingdom', 'United States', 'Uruguay', 'Thailand', 'Andorra', 'Romania',
+ 'Vietnam' ,'Egypt', 'India', 'Israel', 'Morocco', 'Saudi Arabia',
+ 'South Africa', 'United Arab Emirates', 'Russia', 'Ukraine' ,'South Korea'], max_selections=2,
 )
 
-#SELECT VARIABLES
-variables = st.sidebar.selectbox(
-    'Variables', ('Confirmed cases', 'Confirmed deaths', 'Fully vaccinated', 'ICU patient' )
-)
-
-if (variables=="Confirmed cases"):
-    rVar='total_cases'
-elif (variables=="Confirmed deaths"):
-    rVar='total_deaths'
-elif (variables=="Fully vaccinated"):
-    rVar='people_fully_vaccinated'
-else:
-    rVar='icu_patients'
-
-date_inicio = date(2020, 3, 10) #date inicio pandemia
-date_fin = date(2023,1,21) #date fin pandemia
-with st.sidebar.expander('Report month'):
-    this_year = datetime.date.today().year
-    this_month = datetime.date.today().month
-    report_year = st.selectbox('', range(this_year, this_year - 5, -1))
+#Select date
+with st.sidebar.expander(label='Report month'):
+    max_year = 2021
+    max_month = 12
+    report_year = st.selectbox(label='year',options= range(max_year, 2016, -1),label_visibility='hidden')
     month_abbr = calendar.month_abbr[1:]
-    report_month_str = st.radio('', month_abbr, index=this_month - 1, horizontal=True)
+    report_month_str = st.radio(label='month', options=month_abbr, index=max_month - 1, horizontal=True,label_visibility='hidden')
     report_month = month_abbr.index(report_month_str) + 1
-
-#SELECT DATAS
-start_date = st.sidebar.date_input('Start Date', 
-                                   value= date_inicio, 
-                                   min_value= date_inicio, 
-                                   max_value= date_fin)
-
-end_date = st.sidebar.date_input('End Date', 
-                                 value = date_fin,
-                                 min_value= date_inicio, 
-                                 max_value= date_fin)
 
 #BUTTON
 buttonSearch = st.sidebar.button('Search')
@@ -147,7 +108,7 @@ def isAllCorrect() -> bool:
     return len(country) > 0
 
 #Tabs
-tab0, tab1, tab2 = st.tabs(['Query','Line','Bars'])
+tab0, tab1, tab2 = st.tabs(['Query','Current','Top'])
 
 if buttonSearch:
     if isAllCorrect():
@@ -155,38 +116,36 @@ if buttonSearch:
         sentence = createSentence(country)
         pSentence = prettySentence(country)
         
-        #rows = run_query(f"select * from DatosCovid as dc where dc.Date >= '{start_date}' and dc.Date <= '{end_date}' and dc.Location IN {sentence};")
-        
-        # Print results.
-        #for row in rows:
-        #    st.write(f"{row[0]} - {row[1]} - {row[2]} - {row[3]} - {row[4]}")
         with tab0:
-            data = run_queryDF(f"select dc.Location,dc.Date,dc.{rVar} from DatosCovid as dc where dc.Date >= '{start_date}' and dc.Date <= '{end_date}' and dc.Location IN {sentence};")
+            data = run_queryDF(f"select * from charts as ps where ps.region IN {sentence} and month(ps.date) = {report_month} and year(ps.date)={report_year};")
             st.table(data)
 
-        with tab1:
-            st.subheader(f'Linechar for: {pSentence}')
-            if len(country)>1:
-                st.warning("Sorry, this chart can only handle one country at a time 🧐🧐")                
-            else:
-                #print(f"select month(dc.Date) as mes,max(dc.{rVar}) as total from DatosCovid dc where dc.Location IN {sentence} group by month(dc.Date) order by  month(dc.Date) asc")
-                if(rVar=='people_fully_vaccinated'):
-                    data1 = run_queryDF(f"select cast(year(dc.Date) as varchar) + '-' + cast(month(dc.Date) as varchar) as mes, max(dc.people_fully_vaccinated) as total from DatosCovid dc where dc.Location IN {sentence} and dc.Date >= '{start_date}' and dc.Date <= '{end_date}'group by month(dc.Date),year(dc.Date), dc.people_fully_vaccinated order by  year(date),month(dc.Date) asc")
-                    st.line_chart(data=data1, y='total')
-                else:
-                    data1 = run_queryDF(f"select month(dc.Date) as mes,max(dc.{rVar}) as total from DatosCovid dc where dc.Location IN {sentence} and dc.Date >= '{start_date}' and dc.Date <= '{end_date}' group by month(dc.Date) order by  month(dc.Date) asc")
-                    st.line_chart(data=data1,x='mes', y='total')
+        with tab1:   
+            scope = "user-read-recently-played"       
+            sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=clientID,client_secret=clientSe,redirect_uri=redirect,scope=scope))
+            results = sp.current_user_recently_played(limit=10)
+            recent = pd.DataFrame.from_dict(results)
+            st.table(recent)
+            #for idx, item in enumerate(results['items']):
+            #    track = item['track']
+            #    print(idx, track['artists'][0]['name'], " – ", track['name'])
 
             
 
         with tab2:
-            st.subheader(f'Barchar for: {pSentence}')
-            if len(country)>1:
-                data2 = run_queryDF(f"select dc.Location, max(dc.{rVar}) as total from DatosCovid dc where dc.Location in {sentence} and dc.Date >= '{start_date}' and  dc.Date <= '{end_date}' group by dc.Location")
-                st.bar_chart(data=data2,x='Location', y='total')
-            else:
-                data2 = run_queryDF(f"select year(dc.Date) as año, max(dc.{rVar}) as total from DatosCovid dc where dc.Location in ('Canada') and dc.Date >= '{start_date}' and  dc.Date <= '{end_date}' group by year(dc.Date) order by year(dc.Date) asc")
-                st.bar_chart(data=data2,x='año', y='total')
+            scope = "user-top-read"
+            sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=clientID,client_secret=clientSe,redirect_uri=redirect,scope=scope))
+            results = sp.current_user_top_artists(limit=10)
+            topA = pd.DataFrame.from_dict(results)
+            st.table(topA)
+            for idx, artist in enumerate(results['items']):
+                print(idx, artist['name'],artist['popularity'],artist['genres'],artist['images'][0])
+            results = sp.current_user_top_tracks()
+            topT = pd.DataFrame.from_dict(results)
+            st.table(topT)
+            for idx, item in enumerate(results['items']):
+                artists=[artist['name'] for artist in item['artists']]
+                print(idx, item['name'],artists)
 
     else:
         st.warning("Sorry, there's been a problem filling those boxes 🧐🧐")
@@ -194,7 +153,7 @@ if buttonSearch:
 else:
     with tab0:
         st.info("Welcome to our webpage!")
-        st.write("Here you can see really interesenting graphs related to COVID-19")
+        st.write("Here you can see really curious facts about your current spotify trends!")
         st.success("To visualizes the graphics. Fill the boxes on your left 👈")
     
     with tab1:
