@@ -15,7 +15,7 @@ import calendar
 
 clientID= st.secrets['clientID']
 clientSe = st.secrets['clientSe']
-redirect='http://localhost:7777/callback' 
+redirect='https://codersinthehouse-projectmvp-homepage-fhzapu.streamlit.app/' 
 
 st.set_page_config(page_title="SpotiChart", page_icon=":sound:", layout="wide")
 
@@ -55,7 +55,7 @@ def init_connection():
             if error.args[0] == "08S01":
                 connected= False
                 conn.close()
-                return conn
+    return conn
 
 conn = init_connection()
 
@@ -85,30 +85,57 @@ def queryRecently():
     scope = "user-read-recently-played"  
     sp = spotipy.Spotify(auth_manager = SpotifyOAuth(client_id = clientID, 
                                                     client_secret = clientSe, redirect_uri =redirect,scope=scope))
-    results = sp.current_user_recently_played(limit=10) #dict
-    recent = pd.DataFrame.from_dict(results) #df
-    #for idx, item in enumerate(results['items']):
-        #    track = item['track']
-        #    print(idx, track['artists'][0]['name'], " – ", track['name'])
+    artist_name=[]
+    track_name=[]
+    track_id=[]
+    recent = sp.current_user_recently_played(limit=10) #dict
+    for i, item in enumerate(recent['items']):
+        track = item['track']
+        artist_name.append(track['artists'][0]['name'])
+        track_name.append(track['name'])
+        track_id.append(track['id'])
+
+    recent = pd.DataFrame({'artist_name':artist_name,'track_name':track_name,'track_id':track_id}) #df
+
     return recent
 
 #query of the top songs played by the user
-def querytop():
+def queryTArtists():
     scope = "user-top-read"
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID,
                                                     client_secret = clientSe,redirect_uri = redirect,
                                                     scope = scope))
     results = sp.current_user_top_artists(limit=10)
-    topA = pd.DataFrame.from_dict(results)
-    st.table(topA)
+    artist_name=[]
+    popularity=[]
+    genres=[]
+    images=[]
     for idx, artist in enumerate(results['items']):
-        print(idx, artist['name'],artist['popularity'],artist['genres'],artist['images'][0])
-        results = sp.current_user_top_tracks()
-        topT = pd.DataFrame.from_dict(results)
-        st.table(topT)
+        artist_name.append(artist['name'])
+        popularity.append(artist['popularity'])
+        genres.append(artist['genres'])
+        images.append(artist['images'][0])
+
+    topA=pd.DataFrame({'artist_name':artist_name,'popularity':popularity,'genres':genres,'images':images}) #df
+    st.table(topA)
+    return topA
+
+def queryTSongs():
+    scope = "user-top-read"
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID,
+                                                    client_secret = clientSe,redirect_uri = redirect,
+                                                    scope = scope))
+    results = sp.current_user_top_tracks()
+    artist_name=[]
+    track=[]
     for idx, item in enumerate(results['items']):
-        artists=[artist['name'] for artist in item['artists']]                        
-        print(idx, item['name'],artists)
+        artist_name.append([artist['name'] for artist in item['artists']])
+        track.append(item['name'])                       
+    
+    topT=pd.DataFrame({'artist_name':artist_name,'track':track}) #df
+    st.table(topT)
+    return topT
+    
 
 
 def display_Home():
@@ -125,7 +152,7 @@ def display_Home():
                 Spoticharts is a website that is customized according to your musical tastes, allows you to discover related music and offers you the possibility to compare the popularity of songs and playlists over time, giving you a more complete and enriching music experience.
                 """
             )
-            st.write("[Our DataFrame >](https://www.youtube.com/shorts/2odQ3sAKJzU)")
+            st.write("[Our DataFrame >](https://www.kaggle.com/datasets/dhruvildave/spotify-charts)")
         with right_column:
             # ---- LOAD ASSETS ----
             try:
@@ -178,7 +205,8 @@ def display_Graphs():
                 with tab1:   
                     queryRecently()
                 if tab2:
-                    querytop()
+                    queryTSongs()
+                    queryTArtists()
             else:
                 st.warning("Sorry, there's been a problem filling those boxes 🧐🧐")
                 st.info("Please check and hit that search button again! 🤞")
@@ -187,12 +215,17 @@ def display_Graphs():
                 st.write("Here you can see really curious facts about your current spotify trends!")
                 st.success("To visualizes the graphics. Fill the boxes on your left 👈")
             with tab1:
-                st.info("Here you will see a line chart of the query you just performed!")
+                st.info("Here you will see a comparison against your most current activity!")
             with tab2:
-                st.info("Here you will see a line chart of the query you just performed!")
+                st.info("Here you will see a comparison against the stuff you've heard the most!")
 
 def display_About():
     st.title(f'You have selected about us')
+    st.write("Codersinthe house is a team of three students trying to save their current semester")
+    st.write("###Members")
+    st.write("- Katy, Are you a front? cause' she'll put an end to you")
+    st.write("- Tabata, WildCard")
+    st.write("- Alan, The procrastinator")
 
 if selected == 'Home':
     display_Home()

@@ -1,6 +1,6 @@
 # Spotify Trend comparisson website
 > This is the final project for the 2023-10 databases class.
-> Live demo [_here_](https://www.youtube.com/watch?v=gPCCYMeXin0). <!-- If you have the project hosted somewhere, include the link here. -->
+> Live demo [_here_](https://codersinthehouse-projectmvp-homepage-fhzapu.streamlit.app/). <!-- If you have the project hosted somewhere, include the link here. -->
 
 ## Table of Contents
 * [General Info](#general-information)
@@ -11,16 +11,10 @@
 * [Room for Improvement](#room-for-improvement)
 * [Acknowledgements](#acknowledgements)
 * [Contact](#contact)
-<!-- * [License](#license) -->
 
 
 ## General Information
-- Provide general information about your project here.
-- What problem does it (intend to) solve?
-- What is the purpose of your project?
-- Why did you undertake it?
-<!-- You don't have to answer all the questions - just the ones relevant to your project. -->
-
+- SpotiCharts is a valuable solution for users who are interested in accessing comprehensive statistics and insights about their Spotify usage. By leveraging data from projectSpotify, which includes information about viral top charts across different countries and months, we can provide users with a deep understanding their listening behavior and preferences.
 
 ## Technologies Used
 - Python - version 3.11
@@ -37,7 +31,7 @@ List the ready features here:
 
 
 ## Usage
-Execute with streamlit?
+Execute with streamlit!
 
 `stremlit run Hompeage.py`
 
@@ -62,10 +56,3 @@ Room for improvement:
 
 ## Contact
 Created by [CodersInTheHouse](https://github.com/CodersInTheHouse) - feel free to contact us!
-
-
-<!-- Optional -->
-<!-- ## License -->
-<!-- This project is open source and available under the [... License](). -->
-
-<!-- You don't have to include all sections - just the one's relevant to your project -->
