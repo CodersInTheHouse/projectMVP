@@ -117,7 +117,7 @@ def queryRecently():
 
 #query of the top artist played by the user
 def queryTArtists():
-    results = sp.current_user_top_artists(limit=10)
+    results = sp.current_user_top_artists(limit=10, time_range= 'long_term')
     artist_name=[]
     popularity=[]
     genres=[]
@@ -132,7 +132,7 @@ def queryTArtists():
     return topA
 
 def queryTSongs():
-    results = sp.current_user_top_tracks(limit=10)
+    results = sp.current_user_top_tracks(limit=10, time_range= 'long_term')
     artist_name=[]
     track=[]
     for idx, item in enumerate(results['items']):
@@ -170,9 +170,7 @@ def display_Home():
             st_lottie(lottie_coding, height=300, key="coding")
 
 def isAllCorrect(list:list):
-    if(len(list)==0):
-        return False
-    return True
+    return not len(list)==0
 
 def list2String(list:list):
     if(len(list)==1):
