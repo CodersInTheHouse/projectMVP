@@ -1,4 +1,5 @@
 [theme]
-base="dark"
-font="monospace"
-
+primaryColor = "#0c7300"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#0c2b0c"
+textColor = "#0c7300"
