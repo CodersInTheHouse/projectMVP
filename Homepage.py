@@ -19,6 +19,9 @@ redirect='http://localhost:7777/callback'
 
 st.set_page_config(page_title="SpotiChart", page_icon=":sound:", layout="wide")
 
+scope = "user-top-read"
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID, client_secret = clientSe,redirect_uri = redirect, scope = scope))
+
 
 selected = option_menu(
         menu_title=None, 
@@ -80,29 +83,21 @@ def createSentence(lista: list):
     sentence += ")"
     return sentence
 
-#query of the most recent songs played by the user
+#query of the top songs (recently) played by the user
 def queryRecently():
-    scope = "user-read-recently-played"  
-    sp = spotipy.Spotify(auth_manager = SpotifyOAuth(client_id = clientID, 
-                                                    client_secret = clientSe, redirect_uri =redirect,scope=scope))
     artist_name=[]
     track_name=[]
-    recent = sp.current_user_recently_played(limit=10) #dict
-    for i, item in enumerate(recent['items']):
-        track = item['track']
-        artist_name.append(track['artists'][0]['name'])
+    recent = sp.current_user_top_tracks(limit=20, time_range= 'short_term') #dict
+
+    for track in recent['items']:
         track_name.append(track['name'])
+        artist_name.append(track['artists'][0]['name'])
 
     recent = pd.DataFrame({'artist':artist_name,'track':track_name}) #df
-
     return recent
 
-#query of the top songs played by the user
+#query of the top artist played by the user
 def queryTArtists():
-    scope = "user-top-read"
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID,
-                                                    client_secret = clientSe,redirect_uri = redirect,
-                                                    scope = scope))
     results = sp.current_user_top_artists(limit=10)
     artist_name=[]
     popularity=[]
@@ -118,10 +113,6 @@ def queryTArtists():
     return topA
 
 def queryTSongs():
-    scope = "user-top-read"
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID,
-                                                    client_secret = clientSe,redirect_uri = redirect,
-                                                    scope = scope))
     results = sp.current_user_top_tracks(limit=10)
     artist_name=[]
     track=[]
@@ -131,7 +122,7 @@ def queryTSongs():
     
     topT=pd.DataFrame({'artist':artist_name,'track':track}) #df
     return topT
-    
+
 
 
 def display_Home():
@@ -172,7 +163,7 @@ def list2String(list:list):
         for i in list:
             str += i+', '
         return str.rsplit(',',1)[0]
-    
+
 def matchFinder(dtA:pd.DataFrame,dtB:pd.DataFrame,colA:str,colB:str):
     match=[]
     for index, rowA in dtA.iterrows():
@@ -208,10 +199,9 @@ def display_Graphs():
         buttonSearch = st.sidebar.button('Search')
         
         #Tabs
-        tab0, tab1, tab2,tab3 = st.tabs(['Query :memo:','Current :clock1:','Top artists :male-singer::female-singer:','Top songs :musical_note::fire:'])
+        tab0, tab1, tab2,tab3 = st.tabs(['Query :memo:','Current :clock1:',':female-singer: Top artists:male-singer:','Top songs :musical_note::fire:'])
         
         if buttonSearch:
-            print("Button pressed")
             if isAllCorrect(country):
                 #Funcion que retorna los paises seleccionados en forma de query
                 sentence = createSentence(country)
@@ -220,7 +210,7 @@ def display_Graphs():
                     st.table(data)
                 with tab1:
                     st.write('### Your current tastes')
-                    recent =queryRecently()
+                    recent = queryRecently()
                     for index, row in recent.iterrows():
                         if type(row['artist'])==str:
                             artists=row['artist']
@@ -230,13 +220,13 @@ def display_Graphs():
                     st.write('### Comparison')
                     m=matchFinder(data,recent,'title','track')
                     if len(m)==0:
-                        st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
+                        st.info("No matches found! 	:eyes: :pleading_face: :cold_face:")
                     else:
                         st.write('You have tastes that match old trends!')
                         matches=data[data['title'].isin(m)]
                         st.table(matches)
                         
-                    
+                
                 with tab2:
                     st.write('### Your top artists')
                     tArtists=queryTArtists()
