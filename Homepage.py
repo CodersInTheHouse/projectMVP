@@ -106,13 +106,15 @@ def createSentence(lista: list):
 def queryRecently():
     artist_name=[]
     track_name=[]
-    recent = sp.current_user_top_tracks(limit=20, time_range= 'short_term') #dict
+    track_url=[]
+    recent = sp.current_user_top_tracks(limit=10, time_range= 'short_term') #dict
 
     for track in recent['items']:
         track_name.append(track['name'])
         artist_name.append(track['artists'][0]['name'])
+        track_url.append(track["preview_url"])
 
-    recent = pd.DataFrame({'artist':artist_name,'track':track_name}) #df
+    recent = pd.DataFrame({'artist':artist_name,'track':track_name, 'url': track_url}) #df
     return recent
 
 #query of the top artist played by the user
@@ -122,25 +124,30 @@ def queryTArtists():
     popularity=[]
     genres=[]
     images=[]
-    for idx, artist in enumerate(results['items']):
+    for artist in results['items']:
+        print("Here")
+        print(artist)
+        genres.append(artist['genres'])
+        images.append(artist['images'][0]['url'])
         artist_name.append(artist['name'])
         popularity.append(artist['popularity'])
-        genres.append(artist['genres'])
-        images.append(artist['images'][0])
-
-    topA=pd.DataFrame({'artist':artist_name,'popularity':popularity,'genres':genres,'images':images}) #df
+        
+    topA = pd.DataFrame({'artist':artist_name,'popularity':popularity,'genres':genres,'url_image':images}) #df
     return topA
 
 def queryTSongs():
     results = sp.current_user_top_tracks(limit=10, time_range= 'long_term')
     artist_name=[]
-    track=[]
-    for idx, item in enumerate(results['items']):
-        artist_name.append([artist['name'] for artist in item['artists']])
-        track.append(item['name'])                       
+    track_name=[]
+    track_url=[]
     
-    topT=pd.DataFrame({'artist':artist_name,'track':track}) #df
-    return topT
+    for track in results['items']:
+        track_name.append(track['name'])
+        artist_name.append(track['artists'][0]['name'])
+        track_url.append(track["preview_url"])
+
+    recent = pd.DataFrame({'artist':artist_name,'track':track_name, 'url': track_url}) #df
+    return recent
 
 
 
@@ -224,57 +231,164 @@ def display_Graphs():
                 sentence = createSentence(country)
                 data = run_queryDF(f"select * from charts as ps where ps.region IN {sentence} and month(ps.date) = {report_month} and year(ps.date)= {report_year};")
                 with tab0:
-                    st.table(data)
+                    df2 = data[['rank', 'title', 'artist', 'url']].copy()
+                    df2 = df2.set_index('rank')
+                    st.table(df2)
+
+                def writeStyle(sentence, color, size=16):
+                    st.markdown(f'<p style="color:{color};font-size:{size}px;">{sentence}</p>', unsafe_allow_html=True)
+                
                 with tab1:
                     st.write('### Your current tastes')
                     recent = queryRecently()
-                    for index, row in recent.iterrows():
-                        if type(row['artist'])==str:
-                            artists=row['artist']
-                        else:
-                            artists=list2String(row['artist'])
-                        st.write(f'- ({artists})  {row["track"]}')
-                    st.write('### Comparison')
-                    m=matchFinder(data,recent,'title','track')
-                    if len(m)==0:
-                        st.info("No matches found! 	:eyes: :pleading_face: :cold_face:")
-                    else:
-                        st.write('You have tastes that match old trends!')
-                        matches=data[data['title'].isin(m)]
-                        st.table(matches)
+                    with st.container():
+                        col1, col2, col3 = st.columns((4,3,3))
+                        with col1:
+                            writeStyle("Artist", "white")
+                            for artist in recent.loc[:,"artist"]:
+                                st.write("")
+                                writeStyle(artist, "#1e81b0")
+                                st.write("")
                         
+                        with col2:
+                            writeStyle("Song", "white")
+                            for track in recent.loc[:,"track"]:
+                                col2.write("")
+                                writeStyle(track, "#abdbe3")
+                                col2.write("")
+                        
+                        with col3:
+                            writeStyle("Preview", "white")
+                            for url in recent.loc[:,"url"]:
+                                st.audio(url, format='audio/mp3')
+                    
+                    with st.container():
+                        st.write('### Comparison')
+                        m=matchFinder(data,recent,'title','track')
+                        if len(m)==0:
+                            st.info("No matches found! 	:eyes: :pleading_face: :cold_face:")
+                        else:
+                            st.info('You have tastes that match old trends!')
+                            col1, col2, col3 = st.columns((4,3,3))
+                            matches=data[data['title'].isin(m)]
+                            df2 = matches[['rank', 'title', 'artist', 'url']].copy()
+                            
+                            with col1:
+                                
+                                writeStyle("Artist", "white")
+                                for artist in df2.loc[:,"artist"]:
+                                    writeStyle(artist, "#1e81b0")
+                            
+                            with col2:
+                                writeStyle("Song", "white")
+                                for track in df2.loc[:,"title"]:
+                                    writeStyle(track, "#abdbe3")
+                            
+                            with col3:
+                                writeStyle("Url", "white")
+                                for url in df2.loc[:,"url"]:
+                                    st.write(f'[Our DataFrame >]({url})')
                 
                 with tab2:
-                    st.write('### Your top recently artists')
-                    tArtists=queryTArtists()
-                    for index, row in tArtists.iterrows():
-                        st.write(f'#### {row["artist"]}')
-                        st.write(f'- Popularity: {row["popularity"]}')
-                        st.write(f'- Genres: {list2String(row["genres"])}')
-                        st.image(row['images']['url'], width=250)
-                    m=matchFinder(data,tArtists,'artist','artist')
-                    st.write('### Comparison')
-                    if len(m)==0:
-                        st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
-                    else:
-                        st.write(f'Hey, you have artists shining in {report_year}!')
-                        matches=data[data['artist'].isin(m)]
-                        st.table(matches)
+                    st.write('### Your top artists of all times')
+                    tArtists = queryTArtists()
+                    with st.container():
+                        col1, col2 = st.columns(2)
+                        
+                        def write(row):
+                            st.image(row['url_image'], width=200)
+                            st.write(f'#### {row["artist"]}')
+                            sentence = f'Popularity: {row["popularity"]}'
+                            writeStyle(sentence, 'grey')
+                            sentence = f'Genres: {list2String(row["genres"])}'
+                            writeStyle(sentence, 'grey')
+                        
+                        for index, row in tArtists.iterrows():
+                            if index % 2 == 0:
+                                with col1:
+                                    write(row)
+                            else:
+                                with col2:
+                                    write(row)
                     
+                    m=matchFinder(data,tArtists,'artist','artist')
+                    with st.container():
+                        writeStyle("Comparison", "white", 26)
+                        if len(m)==0:
+                            st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
+                        else:
+                            st.info(f'Hey, you have artists shining in {report_year}!')
+
+                            col1, col2, col3 = st.columns((4,3,3))
+                            matches=data[data['artist'].isin(m)]
+                            df2 = matches[['rank', 'title', 'artist', 'url']].copy()
+                            
+                            with col1:
+                                writeStyle("Artist", "white")
+                                for artist in df2.loc[:,"artist"]:
+                                    writeStyle(artist, "#1e81b0")
+                            
+                            with col2:
+                                writeStyle("Song", "white")
+                                for track in df2.loc[:,"title"]:
+                                    writeStyle(track, "#abdbe3")
+                            
+                            with col3:
+                                writeStyle("Url", "white")
+                                for url in df2.loc[:,"url"]:
+                                    st.write(f'[Listen in Spotify]({url})')
+                
                 with tab3:
-                    st.write('### Your top recently songs')
-                    tSongs=queryTSongs()
-                    for index, row in tSongs.iterrows():
-                        artists=list2String(row['artist'])
-                        st.write(f'- ({artists})  {row["track"]}')
-                    m=matchFinder(data,tSongs,'title','track')
-                    st.write('### Comparison')
-                    if len(m)==0:
-                        st.info("No matches found! 	:eyes: :pleading_face: :cold_face:")
-                    else:
-                        st.write('You have tastes that match old trends!')
-                        matches=data[data['title'].isin(m)]
-                        st.table(matches)
+                    st.write('### Your top songs of all times')
+                    tSongs = queryTSongs()
+                    
+                    with st.container():
+                        col1, col2, col3 = st.columns((4,3,3))
+                        with col1:
+                            writeStyle("Artist", "white")
+                            for artist in tSongs.loc[:,"artist"]:
+                                st.write("")
+                                writeStyle(artist, "#1e81b0")
+                                st.write("")
+                        
+                        with col2:
+                            writeStyle("Song", "white")
+                            for track in tSongs.loc[:,"track"]:
+                                col2.write("")
+                                writeStyle(track, "#abdbe3")
+                                col2.write("")
+                        
+                        with col3:
+                            writeStyle("Preview", "white")
+                            for url in tSongs.loc[:,"url"]:
+                                st.audio(url, format='audio/mp3')
+                    
+                    m=matchFinder(data, tSongs,'title','track')
+                    with st.container():
+                        st.write('### Comparison')
+                        if len(m)==0:
+                            st.info("No matches found! 	:eyes: :pleading_face: :cold_face:")
+                        else:
+                            st.info('You have tastes that match old trends!')
+                            
+                            col1, col2, col3 = st.columns((4,3,3))
+                            matches=data[data['title'].isin(m)]
+                            df2 = matches[['rank', 'title', 'artist', 'url']].copy()
+                            
+                            with col1:
+                                writeStyle("Artist", "white")
+                                for artist in df2.loc[:,"artist"]:
+                                    writeStyle(artist, "#1e81b0")
+                            
+                            with col2:
+                                writeStyle("Song", "white")
+                                for track in df2.loc[:,"title"]:
+                                    writeStyle(track, "#abdbe3")
+                            
+                            with col3:
+                                writeStyle("Url", "white")
+                                for url in df2.loc[:,"url"]:
+                                    st.write(f'[Listen in Spotify]({url})')
                 
             else:
                 st.warning("Sorry, there's been a problem filling those boxes 🧐🧐")
