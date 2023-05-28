@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit as st
 import pandas as pd
 import pyodbc
 import spotipy
@@ -11,14 +10,35 @@ from PIL import Image
 from streamlit_option_menu import option_menu
 from datetime import date, timedelta
 import calendar
+from pathlib import Path
 
 
 clientID= st.secrets['clientID']
 clientSe = st.secrets['clientSe']
 redirect='http://localhost:7777/callback' 
 
+# ---- HEADER SECTION ----
 st.set_page_config(page_title="SpotiChart", page_icon=":sound:", layout="wide")
 
+#### Loading assets #####
+# PATH SETTINGS 
+current_dir =Path(__file__).parent if '__file__' in locals() else Path.cwd()
+css_file = current_dir/'styles'/'main.css'
+
+profile_alan_ph = current_dir/'assets'/'alan.jpeg'
+profile_katy_ph = current_dir/'assets'/'katy.png'
+profile_tabata_ph = current_dir/'assets'/'tabata.png'
+
+#DESCRIPTIONS 
+NAMEALAN= 'Alan Florez'
+DESCRIPTIONALAN= ' Spotify API PRO'
+NAMEKATY='Katy Diaz'
+DESCRIPTIONKATY='Front-End Developer'
+NAMETABATA='Tabata Llach'
+DESCRIPTIONTABATA='Back-end developer'
+
+
+#to grant access to the user's spotify data
 scope = "user-top-read"
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID, client_secret = clientSe,redirect_uri = redirect, scope = scope))
 
@@ -31,7 +51,6 @@ selected = option_menu(
         default_index=0,
         orientation= 'horizontal',
 )
-
 
 
 # Initialize connection.
@@ -228,7 +247,7 @@ def display_Graphs():
                         
                 
                 with tab2:
-                    st.write('### Your top artists')
+                    st.write('### Your top recently artists')
                     tArtists=queryTArtists()
                     for index, row in tArtists.iterrows():
                         st.write(f'#### {row["artist"]}')
@@ -245,7 +264,7 @@ def display_Graphs():
                         st.table(matches)
                     
                 with tab3:
-                    st.write('### Your top songs')
+                    st.write('### Your top recently songs')
                     tSongs=queryTSongs()
                     for index, row in tSongs.iterrows():
                         artists=list2String(row['artist'])
@@ -253,7 +272,7 @@ def display_Graphs():
                     m=matchFinder(data,tSongs,'title','track')
                     st.write('### Comparison')
                     if len(m)==0:
-                        st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
+                        st.info("No matches found! 	:eyes: :pleading_face: :cold_face:")
                     else:
                         st.write('You have tastes that match old trends!')
                         matches=data[data['title'].isin(m)]
@@ -274,12 +293,29 @@ def display_Graphs():
                 st.info("Here you will see a comparison against the songs you've heard the most!")
 
 def display_About():
-    st.title(f'You have selected about us')
-    st.write("CodersInTheHouse is a team of three students trying to save their current semester.")
-    st.write("### Members")
-    st.write("- Katy, Are you a front? cause' she'll put an end to you. (frontend)")
-    st.write("- Tabata, WildCard. (fullstack)")
-    st.write("- Alan, The procrastinator. (¬_¬)")
+    st.title('Meet the ✨PANES✨ team')
+    st.write('---')
+    st.subheader('Our team is conformed by a group of 3 gay people 💋')
+    #LOAD CSS AND IMAGE
+    with st.container():
+        with open(css_file) as f:
+            st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
+        profile_alan = Image.open(profile_alan_ph)
+        profile_katy =Image.open(profile_katy_ph)
+        profile_tabata =Image.open(profile_tabata_ph)
+        col1, col2, col3 =st.columns(3, gap='small')
+        with col1:
+            st.image(profile_alan, width=200)
+            st.title(NAMEALAN)
+            st.write(DESCRIPTIONALAN)
+        with col2:
+            st.image(profile_katy, width=200)
+            st.title(NAMEKATY)
+            st.write(DESCRIPTIONKATY)
+        with col3:
+            st.image(profile_tabata, width=200)
+            st.title(NAMETABATA)
+            st.write(DESCRIPTIONTABATA)
 
 if selected == 'Home':
     display_Home()
