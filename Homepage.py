@@ -15,7 +15,7 @@ import calendar
 
 clientID= st.secrets['clientID']
 clientSe = st.secrets['clientSe']
-redirect='https://codersinthehouse-projectmvp-homepage-fhzapu.streamlit.app/' 
+redirect='http://localhost:7777/callback' 
 
 st.set_page_config(page_title="SpotiChart", page_icon=":sound:", layout="wide")
 
@@ -87,15 +87,13 @@ def queryRecently():
                                                     client_secret = clientSe, redirect_uri =redirect,scope=scope))
     artist_name=[]
     track_name=[]
-    track_id=[]
     recent = sp.current_user_recently_played(limit=10) #dict
     for i, item in enumerate(recent['items']):
         track = item['track']
         artist_name.append(track['artists'][0]['name'])
         track_name.append(track['name'])
-        track_id.append(track['id'])
 
-    recent = pd.DataFrame({'artist_name':artist_name,'track_name':track_name,'track_id':track_id}) #df
+    recent = pd.DataFrame({'artist':artist_name,'track':track_name}) #df
 
     return recent
 
@@ -116,8 +114,7 @@ def queryTArtists():
         genres.append(artist['genres'])
         images.append(artist['images'][0])
 
-    topA=pd.DataFrame({'artist_name':artist_name,'popularity':popularity,'genres':genres,'images':images}) #df
-    st.table(topA)
+    topA=pd.DataFrame({'artist':artist_name,'popularity':popularity,'genres':genres,'images':images}) #df
     return topA
 
 def queryTSongs():
@@ -125,15 +122,14 @@ def queryTSongs():
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id = clientID,
                                                     client_secret = clientSe,redirect_uri = redirect,
                                                     scope = scope))
-    results = sp.current_user_top_tracks()
+    results = sp.current_user_top_tracks(limit=10)
     artist_name=[]
     track=[]
     for idx, item in enumerate(results['items']):
         artist_name.append([artist['name'] for artist in item['artists']])
         track.append(item['name'])                       
     
-    topT=pd.DataFrame({'artist_name':artist_name,'track':track}) #df
-    st.table(topT)
+    topT=pd.DataFrame({'artist':artist_name,'track':track}) #df
     return topT
     
 
@@ -163,8 +159,28 @@ def display_Home():
             
             st_lottie(lottie_coding, height=300, key="coding")
 
-def isAllCorrect():
+def isAllCorrect(list:list):
+    if(len(list)==0):
+        return False
     return True
+
+def list2String(list:list):
+    if(len(list)==1):
+        return ''.join(list[0])
+    else:
+        str=' '
+        for i in list:
+            str += i+', '
+        return str.rsplit(',',1)[0]
+    
+def matchFinder(dtA:pd.DataFrame,dtB:pd.DataFrame,colA:str,colB:str):
+    match=[]
+    for index, rowA in dtA.iterrows():
+        for index, rowB in dtB.iterrows():
+            if rowA[colA]==rowB[colB]:
+                match.append(rowA[colA])
+    return match
+
 
 def display_Graphs():
     with st.container():
@@ -178,7 +194,7 @@ def display_Graphs():
             'Singapore', 'Spain', 'Slovakia', 'Sweden', 'Taiwan', 'Switzerland', 'Turkey',
             'United Kingdom', 'United States', 'Uruguay', 'Thailand', 'Andorra', 'Romania',
             'Vietnam' ,'Egypt', 'India', 'Israel', 'Morocco', 'Saudi Arabia',
-            'South Africa', 'United Arab Emirates', 'Russia', 'Ukraine' ,'South Korea'], max_selections=2,
+            'South Africa', 'United Arab Emirates', 'Russia', 'Ukraine' ,'South Korea'], max_selections=1,
         )
         #Select date
         with st.sidebar.expander(label='Report month'):
@@ -192,21 +208,67 @@ def display_Graphs():
         buttonSearch = st.sidebar.button('Search')
         
         #Tabs
-        tab0, tab1, tab2 = st.tabs(['Query','Current','Top'])
+        tab0, tab1, tab2,tab3 = st.tabs(['Query :memo:','Current :clock1:','Top artists :male-singer::female-singer:','Top songs :musical_note::fire:'])
         
         if buttonSearch:
             print("Button pressed")
-            if isAllCorrect():
+            if isAllCorrect(country):
                 #Funcion que retorna los paises seleccionados en forma de query
                 sentence = createSentence(country)
+                data = run_queryDF(f"select * from charts as ps where ps.region IN {sentence} and month(ps.date) = {report_month} and year(ps.date)= {report_year};")
                 with tab0:
-                    data = run_queryDF(f"select * from charts as ps where ps.region IN {sentence} and month(ps.date) = {report_month} and year(ps.date)= {report_year};")
                     st.table(data)
-                with tab1:   
-                    queryRecently()
-                if tab2:
-                    queryTSongs()
-                    queryTArtists()
+                with tab1:
+                    st.write('### Your current tastes')
+                    recent =queryRecently()
+                    for index, row in recent.iterrows():
+                        if type(row['artist'])==str:
+                            artists=row['artist']
+                        else:
+                            artists=list2String(row['artist'])
+                        st.write(f'- ({artists})  {row["track"]}')
+                    st.write('### Comparison')
+                    m=matchFinder(data,recent,'title','track')
+                    if len(m)==0:
+                        st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
+                    else:
+                        st.write('You have tastes that match old trends!')
+                        matches=data[data['title'].isin(m)]
+                        st.table(matches)
+                        
+                    
+                with tab2:
+                    st.write('### Your top artists')
+                    tArtists=queryTArtists()
+                    for index, row in tArtists.iterrows():
+                        st.write(f'#### {row["artist"]}')
+                        st.write(f'- Popularity: {row["popularity"]}')
+                        st.write(f'- Genres: {list2String(row["genres"])}')
+                        st.image(row['images']['url'], width=250)
+                    m=matchFinder(data,tArtists,'artist','artist')
+                    st.write('### Comparison')
+                    if len(m)==0:
+                        st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
+                    else:
+                        st.write(f'Hey, you have artists shining in {report_year}!')
+                        matches=data[data['artist'].isin(m)]
+                        st.table(matches)
+                    
+                with tab3:
+                    st.write('### Your top songs')
+                    tSongs=queryTSongs()
+                    for index, row in tSongs.iterrows():
+                        artists=list2String(row['artist'])
+                        st.write(f'- ({artists})  {row["track"]}')
+                    m=matchFinder(data,tSongs,'title','track')
+                    st.write('### Comparison')
+                    if len(m)==0:
+                        st.info("No matches found! 	:eyes: :pleading_face: 	:cold_face:")
+                    else:
+                        st.write('You have tastes that match old trends!')
+                        matches=data[data['title'].isin(m)]
+                        st.table(matches)
+                
             else:
                 st.warning("Sorry, there's been a problem filling those boxes 🧐🧐")
                 st.info("Please check and hit that search button again! 🤞")
@@ -217,15 +279,17 @@ def display_Graphs():
             with tab1:
                 st.info("Here you will see a comparison against your most current activity!")
             with tab2:
-                st.info("Here you will see a comparison against the stuff you've heard the most!")
+                st.info("Here you will see a comparison against the people you've heard the most!")
+            with tab3:
+                st.info("Here you will see a comparison against the songs you've heard the most!")
 
 def display_About():
     st.title(f'You have selected about us')
-    st.write("Codersinthe house is a team of three students trying to save their current semester")
-    st.write("###Members")
-    st.write("- Katy, Are you a front? cause' she'll put an end to you")
-    st.write("- Tabata, WildCard")
-    st.write("- Alan, The procrastinator")
+    st.write("CodersInTheHouse is a team of three students trying to save their current semester.")
+    st.write("### Members")
+    st.write("- Katy, Are you a front? cause' she'll put an end to you. (frontend)")
+    st.write("- Tabata, WildCard. (fullstack)")
+    st.write("- Alan, The procrastinator. (¬_¬)")
 
 if selected == 'Home':
     display_Home()
