@@ -1,6 +1,6 @@
 # Spotify Trend comparisson website
 > This is the final project for the 2023-10 databases class.
-> Live demo [_here_](https://codersinthehouse-projectmvp-homepage-fhzapu.streamlit.app/). <!-- If you have the project hosted somewhere, include the link here. -->
+> Live demo [_here_](https://spotycharts.streamlit.app/). <!-- If you have the project hosted somewhere, include the link here. -->
 
 ## Table of Contents
 * [General Info](#general-information)
